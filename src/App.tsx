@@ -72,6 +72,7 @@ function Graph({
     () =>
       data.map(({ x, y, c }) => (
         <rect
+          key={x}
           x={xScale(x)}
           y={yScale(y)}
           width={xScale.bandwidth()}
@@ -90,7 +91,7 @@ function Graph({
       <RectClipPath id="clip-path" width={width} height={height} />
       <Group clipPath="url(#clip-path)">
         {/* Translate for the scroll offset */}
-        <Group left={clamp(xOffset, -width * (xScaleFactor - 1), 0)}>
+        <Group left={xOffset}>
           {/* Bottom axis scrolls with the group */}
           <AxisBottom scale={xScale} top={height} />
 
@@ -121,12 +122,22 @@ function App() {
     []
   );
 
+  const [panning, setPanning] = useState<boolean>(false);
   const [xScale, setXScale] = useState<number>(1);
   const [xOffset, setXOffset] = useState<number>(0);
 
   return (
     <div className="App">
-      <svg width={width} height={height}>
+      <svg
+        width={width}
+        height={height}
+        onMouseDown={() => setPanning(true)}
+        onMouseUp={() => setPanning(false)}
+        onMouseMove={(event) =>
+          panning &&
+          setXOffset(clamp(xOffset + event.movementX, -width * (xScale - 1), 0))
+        }
+      >
         <Graph
           data={data}
           width={width}
@@ -146,6 +157,7 @@ function App() {
         <button onClick={() => setXOffset(xOffset - 10)}>&lt;-</button>
         {xOffset}
         <button onClick={() => setXOffset(xOffset + 10)}>-&gt;</button>
+        {panning && "panning"}
       </div>
     </div>
   );
