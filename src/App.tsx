@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
-import { AxisLeft, AxisBottom } from "@vx/axis";
-import { scaleBand, scaleLinear } from "@vx/scale";
+import { AxisLeft, AxisBottom } from "@visx/axis";
+import { scaleBand, scaleLinear } from "@visx/scale";
 import { interpolateRdBu } from "d3-scale-chromatic";
 
 import "./App.css";
