@@ -2042,7 +2042,7 @@
     "@typescript-eslint/types" "4.15.2"
     eslint-visitor-keys "^2.0.0"
 
-"@visx/axis@^0.0.199":
+"@visx/axis@^1.12.0":
   version "1.12.0"
   resolved "https://registry.yarnpkg.com/@visx/axis/-/axis-1.12.0.tgz#88f1a7130be8a0c78b2acaf0c55fe8727cee2f95"
   integrity sha512-g867/6/TTHEjzVoIbnYjdYOiNGC3vETn7AZG9tT13KUy9AJE1gwm91pVoi+USHd+R3AvwdbgaQti88FavamoWA==
@@ -2056,6 +2056,14 @@
     "@visx/text" "1.10.0"
     classnames "^2.2.5"
     prop-types "^15.6.0"
+
+"@visx/clip-path@^1.7.0":
+  version "1.7.0"
+  resolved "https://registry.yarnpkg.com/@visx/clip-path/-/clip-path-1.7.0.tgz#684ea6ae15c877d139c0b8f3cdfacb106c6bf4f9"
+  integrity sha512-PuEz/2Clmx3qb0gat4kzjoq/rLush1nhNOT1DV7ui/fipC7z+KpB53OXHeOviB4udD+u233W5kY1uSErLysPRQ==
+  dependencies:
+    "@types/react" "*"
+    prop-types "^15.5.10"
 
 "@visx/curve@1.7.0":
   version "1.7.0"
@@ -2073,7 +2081,7 @@
     "@types/react" "*"
     "@visx/point" "1.7.0"
 
-"@visx/group@1.7.0", "@visx/group@^0.0.199":
+"@visx/group@1.7.0", "@visx/group@^1.7.0":
   version "1.7.0"
   resolved "https://registry.yarnpkg.com/@visx/group/-/group-1.7.0.tgz#e0ef2efbe00ef05326215d65b3d8a2b114df4f35"
   integrity sha512-rzSXtV0+MHUyK+rwhVSV4qaHdzGi3Me3PRFXJSIAKVfoJIZczOkudUOLy34WvSrRlVyoFvGL7k9U5g8wHyY3nw==
@@ -2100,7 +2108,7 @@
     d3-scale "^3.2.3"
     d3-time "^2.1.1"
 
-"@visx/shape@1.12.0", "@visx/shape@^0.0.199":
+"@visx/shape@1.12.0", "@visx/shape@^1.12.0":
   version "1.12.0"
   resolved "https://registry.yarnpkg.com/@visx/shape/-/shape-1.12.0.tgz#c62c6d366f2afd79286155b751985202c04e642a"
   integrity sha512-BiY5nXrpg/CdY2Vd/oIaEsQoYjL7Nb+7IGsRCT5DVNelulgnwU1P13SqdVvs4FUtp/WYy97djQuIrR/6zCHdyw==
@@ -2132,7 +2140,7 @@
     prop-types "^15.7.2"
     reduce-css-calc "^1.3.0"
 
-"@visx/zoom@^0.0.199":
+"@visx/zoom@^1.11.0":
   version "1.11.0"
   resolved "https://registry.yarnpkg.com/@visx/zoom/-/zoom-1.11.0.tgz#1348279ba14e91e4e5453120fbf6bc9a00c1c04d"
   integrity sha512-EWZa8jfyvtyEYdfa01otBTnggxpfZmsokl+J7F0xBFPv2tuQkhr1p/929DEOnZUc/xbEPyLDGOrzBmsr8y32aA==
