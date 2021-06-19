@@ -16,8 +16,8 @@ export default function useTweenState(
   easingFunction: EasingFunction = easeInOutQuad
 ): [number, (target: number) => void, number, boolean] {
   // State vectors for rerendering react
-  const [value, setValue] = useState<number>(initialValue);
-  const [target, setTarget] = useState<number>(initialValue);
+  const [value, _setValue] = useState<number>(initialValue);
+  const [target, _setTarget] = useState<number>(initialValue);
 
   // State vectors for inside memoized callbacks
   const startValue = useRef(value); // Start value for the tween
@@ -27,15 +27,15 @@ export default function useTweenState(
   const startTime = useRef<DOMHighResTimeStamp>(0); // Start time for the tween
   const animateRef = useRef<number>(0); // Ref to the animation handler
 
-  // Callback returned to the customer to change the state
-  const setTargetValue = useCallback((target: number) => {
-    if (target !== currentValue.current) {
-      startValue.current = currentValue.current;
-      targetValue.current = target;
-      startTime.current = performance.now();
+  // Wrappers to set all values at once
+  const setValue = useCallback((value: number) => {
+    currentValue.current = value;
+    _setValue(value);
+  }, []);
 
-      setTarget(target);
-    }
+  const setTarget = useCallback((value: number) => {
+    targetValue.current = value;
+    _setTarget(value);
   }, []);
 
   // Animation callback
@@ -44,34 +44,45 @@ export default function useTweenState(
       const dt = timestamp - startTime.current;
 
       if (dt >= duration) {
-        currentValue.current = targetValue.current;
-
-        setValue(currentValue.current);
+        // Jump to the final value
+        setValue(targetValue.current);
       } else {
-        currentValue.current =
+        const next =
           easingFunction(dt / duration) *
             (targetValue.current - startValue.current) +
           startValue.current;
 
-        setValue(currentValue.current);
+        setValue(next);
 
         // Schedule a new animation frame
         animateRef.current = requestAnimationFrame(animate);
       }
     },
-    [duration, easingFunction]
+    [setValue, duration, easingFunction]
   );
 
-  // Effect to start the animation
+  // Cancel any animation on unmount
   useEffect(() => {
-    if (target !== currentValue.current) {
-      animateRef.current = requestAnimationFrame(animate);
-    } else {
-      cancelAnimationFrame(animateRef.current);
-    }
-
     return () => cancelAnimationFrame(animateRef.current);
-  }, [animate, target]);
+  }, []);
+
+  // State change function for the caller
+  const setTargetValue = useCallback(
+    (value: number) => {
+      if (value !== currentValue.current) {
+        startValue.current = currentValue.current;
+        startTime.current = performance.now();
+
+        // Update the caller with the current target
+        setTarget(value);
+
+        // Trigger an animation
+        cancelAnimationFrame(animateRef.current);
+        animateRef.current = requestAnimationFrame(animate);
+      }
+    },
+    [animate, setTarget]
+  );
 
   return [value, setTargetValue, target, value !== target];
 }
