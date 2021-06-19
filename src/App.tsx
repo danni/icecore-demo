@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { AxisLeft, AxisBottom } from "@visx/axis";
 import { scaleBand, scaleLinear } from "@visx/scale";
 import { Group } from "@visx/group";
@@ -127,6 +127,12 @@ function App() {
   const [xScale, setXScale, xScaleTarget] = useTweenState(1);
   const [xOffset, setXOffset] = useState<number>(0);
 
+  // A function to clamp the xOffset to the visisble data
+  const xOffsetClamp = useCallback(
+    (offset: number) => clamp(offset, -width * (xScale - 1), 0),
+    [xScale, width]
+  );
+
   return (
     <div className="App">
       <svg
@@ -135,8 +141,7 @@ function App() {
         onMouseDown={() => setPanning(true)}
         onMouseUp={() => setPanning(false)}
         onMouseMove={(event) =>
-          panning &&
-          setXOffset(clamp(xOffset + event.movementX, -width * (xScale - 1), 0))
+          panning && setXOffset(xOffsetClamp(xOffset + event.movementX))
         }
       >
         <Graph
@@ -144,13 +149,15 @@ function App() {
           width={width}
           height={height}
           xScale={xScale}
-          xOffset={xOffset}
+          xOffset={xOffsetClamp(xOffset)}
         />
       </svg>
 
       <div>
-        <button onClick={() => setXScale(Math.max(xScaleTarget - 1, 1))}>-</button>
-        {xScale.toPrecision(3)} {xScaleTarget}
+        <button onClick={() => setXScale(Math.max(xScaleTarget - 1, 1))}>
+          -
+        </button>
+        {xScale.toPrecision(3)} target: {xScaleTarget}
         <button onClick={() => setXScale(xScaleTarget + 1)}>+</button>
       </div>
 
