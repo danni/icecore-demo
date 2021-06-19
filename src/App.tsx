@@ -1,11 +1,11 @@
 import React, { useMemo, useState, useCallback } from "react";
 import { AxisLeft, AxisBottom } from "@visx/axis";
-import { scaleBand, scaleLinear } from "@visx/scale";
+import { scaleLinear } from "@visx/scale";
 import { Group } from "@visx/group";
 import { RectClipPath } from "@visx/clip-path";
 import { Text } from "@visx/text";
 import { interpolateRdBu } from "d3-scale-chromatic";
-import { ScaleBand, ScaleLinear } from "d3-scale";
+import { ScaleLinear } from "d3-scale";
 
 import "./App.css";
 import useTweenState from "./useTweenState";
@@ -40,7 +40,7 @@ interface GraphProps {
 }
 
 interface ScaleProps {
-  xScale: ScaleBand<number>;
+  xScale: ScaleLinear<number, number>;
   yScale: ScaleLinear<number, number>;
 }
 
@@ -91,9 +91,9 @@ function DataBars({
       data.map(({ x, y, c }) => (
         <rect
           key={x}
-          x={xScale(x)}
+          x={xScale(x - 0.5)} // Center bar around the year
           y={yScale(y)}
-          width={xScale.bandwidth()}
+          width={xScale(1)} // Bar is one year wide
           height={height - (yScale(y) ?? 0)}
           fill={cScale(c)}
         />
@@ -123,8 +123,8 @@ function Graph({
   // scales are used for converting between the range and the domain
   const xScale = useMemo(
     () =>
-      scaleBand<number>({
-        domain: data.map(({ x }) => x), // All data
+      scaleLinear<number>({
+        domain: [0, Math.max(...data.map(({ x }) => x))], // Calculate the maximum value of the data
         // The width of the canvas is the true width * scaling factor
         range: [0, width * xScaleFactor],
       }),
@@ -151,11 +151,8 @@ function Graph({
       <Group clipPath="url(#clip-path)">
         {/* Translate for the panning offset */}
         <Group left={xOffset}>
-          {/* Bottom axis scrolls with the group */}
-          <AxisBottom scale={xScale} top={height} />
-
+          {/* These go in order from back to frontata */}
           {/* Plot the data */}
-          {/* These go in order from back to front */}
           <ContextBlocks
             context={context}
             xScale={xScale}
@@ -167,6 +164,15 @@ function Graph({
             xScale={xScale}
             yScale={yScale}
             height={height}
+          />
+
+          {/* Bottom axis scrolls with the group */}
+          <AxisBottom
+            scale={xScale}
+            top={height}
+            hideZero
+            numTicks={10 * xScaleFactor}
+            tickFormat={(tick) => tick.toString()}
           />
         </Group>
       </Group>
