@@ -1,15 +1,52 @@
-// Hook for tween state
-// Usage.
-//   const [tweenState, setTweenState] = useTweenState(0, 700);
-//   setTweenState(1000); // tweenState gradually changes to 1000 in 700ms
-//
-// From https://gist.github.com/SevenOutman/438aca96d4cc05f1a81ffe07a98ea99d
-//
+/*
+ * useTweenState
+ *
+ * A hook to tween a state value towards a target.
+ *
+ * Copyright 2021 Danielle Madeley <danielle@madeley.id.au>
+ *
+ * Based upon https://gist.github.com/SevenOutman/438aca96d4cc05f1a81ffe07a98ea99d
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type EasingFunction = (t: number) => number;
 
+/**
+ * Tween a value towards a target value.
+ *
+ * Updates are done in an animation frame.
+ * Use target value when updating the target in flight.
+ *
+ * ```
+ * const [currentValue, setTargetValue, targetValue] = useTweenState(1);
+ *
+ * setTargetValue(targetValue + delta)
+ * ```
+ *
+ * @param initialValue value to initialise state with
+ * @param duration easing duration
+ * @param easingFunction easing function
+ * @returns Returns a tuple of the current value, the setter, and the target value
+ */
 export default function useTweenState(
   initialValue: number,
   duration: number = 400, // ms
@@ -24,7 +61,7 @@ export default function useTweenState(
   const currentValue = useRef(value); // Current value for the tween, matches state
   const targetValue = useRef(value); // Target value for the tween
 
-  const startTime = useRef<DOMHighResTimeStamp>(0); // Start time for the tween
+  const startTimestamp = useRef<DOMHighResTimeStamp>(0); // Start time for the tween
   const animateRef = useRef<number>(0); // Ref to the animation handler
 
   // Wrappers to set all values at once
@@ -41,7 +78,7 @@ export default function useTweenState(
   // Animation callback
   const animate = useCallback(
     (timestamp: DOMHighResTimeStamp) => {
-      const dt = timestamp - startTime.current;
+      const dt = timestamp - startTimestamp.current;
 
       if (dt >= duration) {
         // Jump to the final value
@@ -71,7 +108,7 @@ export default function useTweenState(
     (value: number) => {
       if (value !== currentValue.current) {
         startValue.current = currentValue.current;
-        startTime.current = performance.now();
+        startTimestamp.current = performance.now();
 
         // Update the caller with the current target
         setTarget(value);
