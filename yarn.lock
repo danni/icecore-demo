@@ -2127,7 +2127,7 @@
     lodash "^4.17.15"
     prop-types "^15.5.10"
 
-"@visx/text@1.10.0":
+"@visx/text@1.10.0", "@visx/text@^1.10.0":
   version "1.10.0"
   resolved "https://registry.yarnpkg.com/@visx/text/-/text-1.10.0.tgz#d9b9fb3d195f6843312025dc672b958529d2d4f6"
   integrity sha512-2y56LxbbSHAlu8XP0cARB9JlhPx0HlQyIC4iKUzj36+iJaBiw9wUwLb9RbT/rY715V+6VzU7WCNCxoa4lDr9Sg==

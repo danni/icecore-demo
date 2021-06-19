@@ -3,7 +3,9 @@ import { AxisLeft, AxisBottom } from "@visx/axis";
 import { scaleBand, scaleLinear } from "@visx/scale";
 import { Group } from "@visx/group";
 import { RectClipPath } from "@visx/clip-path";
+import { Text } from "@visx/text";
 import { interpolateRdBu } from "d3-scale-chromatic";
+import { ScaleBand, ScaleLinear } from "d3-scale";
 
 import "./App.css";
 import useTweenState from "./useTweenState";
@@ -19,50 +21,65 @@ interface GraphProps {
 
   margin?: number;
 
-  xScale: number;
+  xScaleFactor: number;
   xOffset: number;
 
-  data: {
+  data: Array<{
     x: number;
     y: number;
     c: number;
-  }[];
+  }>;
+
+  context: Array<{
+    x1: number;
+    x2: number;
+    c: string;
+    label: string;
+  }>;
 }
 
-function Graph({
-  data,
-  width,
+interface ScaleProps {
+  xScale: ScaleBand<number>;
+  yScale: ScaleLinear<number, number>;
+}
+
+function ContextBlocks({
+  context,
+  xScale,
   height,
-  margin = 30, // px
-  xScale: xScaleFactor,
-  xOffset,
-}: GraphProps) {
-  // Remove the margin from the render width and height
-  width -= margin;
-  height -= margin;
-
-  // Calculate and store x-axis scale
-  const xScale = useMemo(
+}: Pick<GraphProps, "context" | "height"> & ScaleProps) {
+  // Calculate and cache the context
+  // N.B. this doesn't depend on xOffset, so scrolling should be nice and
+  // fast
+  const blocks = useMemo(
     () =>
-      scaleBand<number>({
-        domain: data.map(({ x }) => x),
-        range: [0, width * xScaleFactor],
-      }),
-    [data, width, xScaleFactor]
+      context.map(({ x1, x2, c, label }) => (
+        <Group left={xScale(x1)}>
+          <rect
+            key={x1}
+            x={0}
+            width={xScale(x2 - x1 + 1)}
+            y={0}
+            height={height}
+            fill={c}
+          />
+          <Text angle={90} dx={5} dy={5} width={height}>
+            {label}
+          </Text>
+        </Group>
+      )),
+    [context, xScale, height]
   );
 
-  // Calculate and store y-axis scale
-  const yScale = useMemo(
-    () =>
-      scaleLinear<number>({
-        // Calculate the maximum value of the data
-        domain: [0, Math.max(...data.map(({ y }) => y))],
-        range: [height, 0],
-        nice: true,
-      }),
-    [data, height]
-  );
+  return <Group>{blocks}</Group>;
+}
 
+function DataBars({
+  data,
+  xScale,
+  yScale,
+  height,
+}: Pick<GraphProps, "data" | "height"> & ScaleProps) {
   // Colour scale
   const cScale = interpolateRdBu;
 
@@ -84,26 +101,77 @@ function Graph({
     [data, xScale, yScale, cScale, height]
   );
 
+  return <Group>{bars}</Group>;
+}
+
+function Graph({
+  // Data
+  data,
+  context,
+  // Properties
+  width, // Size of the drawing area (in px)
+  height,
+  margin = 30, // px
+  xScaleFactor, // Scaling factor
+  xOffset, // Panning offset
+}: GraphProps) {
+  // Remove the margin from the render width and height
+  width -= margin;
+  height -= margin;
+
+  // Calculate and store x-axis scale
+  // scales are used for converting between the range and the domain
+  const xScale = useMemo(
+    () =>
+      scaleBand<number>({
+        domain: data.map(({ x }) => x), // All data
+        // The width of the canvas is the true width * scaling factor
+        range: [0, width * xScaleFactor],
+      }),
+    [data, width, xScaleFactor]
+  );
+
+  // Calculate and store y-axis scale
+  const yScale = useMemo(
+    () =>
+      scaleLinear<number>({
+        // Calculate the maximum value of the data
+        domain: [0, Math.max(...data.map(({ y }) => y))], // Calculate the maximum value of the data
+        range: [height, 0],
+        nice: true,
+      }),
+    [data, height]
+  );
+
   return (
     // Translate the group to leave space for the axes
-    // Axes draw into the space
     <Group left={margin}>
-      {/* Clip path for panning */}
+      {/* Clip path for panning to remove overflow */}
       <RectClipPath id="clip-path" width={width} height={height + margin} />
       <Group clipPath="url(#clip-path)">
-        {/* Translate for the scroll offset */}
+        {/* Translate for the panning offset */}
         <Group left={xOffset}>
           {/* Bottom axis scrolls with the group */}
           <AxisBottom scale={xScale} top={height} />
 
-          {/* We can plot other data sets in here too */}
-
           {/* Plot the data */}
-          {bars}
+          {/* These go in order from back to front */}
+          <ContextBlocks
+            context={context}
+            xScale={xScale}
+            yScale={yScale}
+            height={height}
+          />
+          <DataBars
+            data={data}
+            xScale={xScale}
+            yScale={yScale}
+            height={height}
+          />
         </Group>
       </Group>
 
-      {/* Left axis goes last to drop it on top */}
+      {/* Left axis goes last to drop it on top, it is outside the panning group */}
       <AxisLeft scale={yScale} />
     </Group>
   );
@@ -112,6 +180,19 @@ function Graph({
 function App() {
   const width = 1000; // px
   const height = 700; // px
+
+  // Normalise the data into flat arrays
+  // This can be done in a selector etc.
+  const context = useMemo(
+    () =>
+      rawData.context.map((record, index) => ({
+        x1: record.startYear,
+        x2: record.endYear,
+        label: record.heading,
+        c: index % 2 ? "white" : "lightgrey",
+      })),
+    []
+  );
 
   const data = useMemo(
     () =>
@@ -135,6 +216,7 @@ function App() {
 
   return (
     <div className="App">
+      {/* Graph */}
       <svg
         width={width}
         height={height}
@@ -146,13 +228,15 @@ function App() {
       >
         <Graph
           data={data}
+          context={context}
           width={width}
           height={height}
-          xScale={xScale}
+          xScaleFactor={xScale}
           xOffset={xOffsetClamp(xOffset)}
         />
       </svg>
 
+      {/* Scale controls */}
       <div>
         <button onClick={() => setXScale(Math.max(xScaleTarget - 1, 1))}>
           -
@@ -161,6 +245,7 @@ function App() {
         <button onClick={() => setXScale(xScaleTarget + 1)}>+</button>
       </div>
 
+      {/* Pan controls */}
       <div>
         <button onClick={() => setXOffset(xOffset - 10)}>&lt;-</button>
         {xOffset}
