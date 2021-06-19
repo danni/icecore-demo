@@ -14,7 +14,7 @@ export default function useTweenState(
   initialValue: number,
   duration: number = 400, // ms
   easingFunction: EasingFunction = easeInOutQuad
-): [number, (target: number) => void, number, boolean] {
+): [number, (target: number) => void, number] {
   // State vectors for rerendering react
   const [value, _setValue] = useState<number>(initialValue);
   const [target, _setTarget] = useState<number>(initialValue);
@@ -84,7 +84,7 @@ export default function useTweenState(
     [animate, setTarget]
   );
 
-  return [value, setTargetValue, target, value !== target];
+  return [value, setTargetValue, target];
 }
 
 // @see https://gist.github.com/gre/1650294

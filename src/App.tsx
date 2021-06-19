@@ -9,6 +9,7 @@ import { ScaleBand, ScaleLinear } from "d3-scale";
 
 import "./App.css";
 import useTweenState from "./useTweenState";
+import useInertialState from "./useInertialState";
 import rawData from "./data.json";
 
 function clamp(value: number, min: number, max: number): number {
@@ -54,9 +55,8 @@ function ContextBlocks({
   const blocks = useMemo(
     () =>
       context.map(({ x1, x2, c, label }) => (
-        <Group left={xScale(x1)}>
+        <Group key={x1} left={xScale(x1)}>
           <rect
-            key={x1}
             x={0}
             width={xScale(x2 - x1 + 1)}
             y={0}
@@ -206,7 +206,7 @@ function App() {
 
   const [panning, setPanning] = useState<boolean>(false);
   const [xScale, setXScale, xScaleTarget] = useTweenState(1);
-  const [xOffset, setXOffset] = useState<number>(0);
+  const [xOffset, setXOffset, xOffsetTarget] = useInertialState(0);
 
   // A function to clamp the xOffset to the visisble data
   const xOffsetClamp = useCallback(
@@ -223,7 +223,7 @@ function App() {
         onMouseDown={() => setPanning(true)}
         onMouseUp={() => setPanning(false)}
         onMouseMove={(event) =>
-          panning && setXOffset(xOffsetClamp(xOffset + event.movementX))
+          panning && setXOffset(xOffsetClamp(xOffsetTarget + event.movementX))
         }
       >
         <Graph
@@ -247,9 +247,9 @@ function App() {
 
       {/* Pan controls */}
       <div>
-        <button onClick={() => setXOffset(xOffset - 10)}>&lt;-</button>
-        {xOffset}
-        <button onClick={() => setXOffset(xOffset + 10)}>-&gt;</button>
+        <button onClick={() => setXOffset(xOffsetTarget - 10)}>&lt;-</button>
+        {xOffset} target: {xOffsetTarget}
+        <button onClick={() => setXOffset(xOffsetTarget + 10)}>-&gt;</button>
         {panning && "panning"}
       </div>
     </div>
