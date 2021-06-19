@@ -6,6 +6,7 @@ import { RectClipPath } from "@visx/clip-path";
 import { interpolateRdBu } from "d3-scale-chromatic";
 
 import "./App.css";
+import useTweenState from "./useTweenState";
 import rawData from "./data.json";
 
 function clamp(value: number, min: number, max: number): number {
@@ -88,7 +89,7 @@ function Graph({
     // Axes draw into the space
     <Group left={margin}>
       {/* Clip path for panning */}
-      <RectClipPath id="clip-path" width={width} height={height} />
+      <RectClipPath id="clip-path" width={width} height={height + margin} />
       <Group clipPath="url(#clip-path)">
         {/* Translate for the scroll offset */}
         <Group left={xOffset}>
@@ -123,7 +124,7 @@ function App() {
   );
 
   const [panning, setPanning] = useState<boolean>(false);
-  const [xScale, setXScale] = useState<number>(1);
+  const [xScale, setXScale, xScaleTarget] = useTweenState(1);
   const [xOffset, setXOffset] = useState<number>(0);
 
   return (
@@ -148,9 +149,9 @@ function App() {
       </svg>
 
       <div>
-        <button onClick={() => setXScale(Math.max(xScale - 1, 1))}>-</button>
-        {xScale}
-        <button onClick={() => setXScale(xScale + 1)}>+</button>
+        <button onClick={() => setXScale(Math.max(xScaleTarget - 1, 1))}>-</button>
+        {xScale.toPrecision(3)} {xScaleTarget}
+        <button onClick={() => setXScale(xScaleTarget + 1)}>+</button>
       </div>
 
       <div>
