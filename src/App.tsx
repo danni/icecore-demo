@@ -1,10 +1,11 @@
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState } from "react";
 import { AxisLeft, AxisBottom } from "@visx/axis";
 import { scaleLinear } from "@visx/scale";
 import { Group } from "@visx/group";
 import { RectClipPath } from "@visx/clip-path";
 import { Text } from "@visx/text";
 import { interpolateRdBu } from "d3-scale-chromatic";
+import { ParentSizeModern as ParentSize } from "@visx/responsive";
 import { ScaleLinear } from "d3-scale";
 
 import "./App.css";
@@ -95,6 +96,7 @@ function DataBars({
           y={yScale(y)}
           width={xScale(1)} // Bar is one year wide
           height={height - (yScale(y) ?? 0)}
+          strokeWidth={0}
           fill={cScale(c)}
         />
       )),
@@ -102,6 +104,11 @@ function DataBars({
   );
 
   return <Group>{bars}</Group>;
+}
+
+// A function to clamp the xOffset to the visisble data
+function xOffsetClamp(width: number, offset: number, scaleFactor: number) {
+  return clamp(offset, -width * (scaleFactor - 1), 0);
 }
 
 function Graph({
@@ -184,9 +191,6 @@ function Graph({
 }
 
 function App() {
-  const width = 1000; // px
-  const height = 700; // px
-
   // Normalise the data into flat arrays
   // This can be done in a selector etc.
   const context = useMemo(
@@ -211,44 +215,53 @@ function App() {
   );
 
   const [panning, setPanning] = useState<boolean>(false);
-  const [xScale, setXScale, xScaleTarget] = useTweenState(1);
+  const [xScaleFactor, setXScaleFactor, xScaleFactorTarget] = useTweenState(1);
   const [xOffset, setXOffset, xOffsetTarget] = useInertialState(0);
-
-  // A function to clamp the xOffset to the visisble data
-  const xOffsetClamp = useCallback(
-    (offset: number) => clamp(offset, -width * (xScale - 1), 0),
-    [xScale, width]
-  );
 
   return (
     <div className="App">
       {/* Graph */}
-      <svg
-        width={width}
-        height={height}
-        onMouseDown={() => setPanning(true)}
-        onMouseUp={() => setPanning(false)}
-        onMouseMove={(event) =>
-          panning && setXOffset(xOffsetClamp(xOffsetTarget + event.movementX))
-        }
-      >
-        <Graph
-          data={data}
-          context={context}
-          width={width}
-          height={height}
-          xScaleFactor={xScale}
-          xOffset={xOffsetClamp(xOffset)}
-        />
-      </svg>
+      <ParentSize>
+        {({ width, height }) => (
+          <svg
+            width={width}
+            height={height}
+            onMouseDown={() => setPanning(true)}
+            onMouseUp={() => setPanning(false)}
+            onMouseMove={(event) =>
+              panning &&
+              setXOffset(
+                xOffsetClamp(
+                  width,
+                  xOffsetTarget + event.movementX,
+                  xScaleFactor
+                )
+              )
+            }
+          >
+            <Graph
+              data={data}
+              context={context}
+              width={width}
+              height={height}
+              xScaleFactor={xScaleFactor}
+              xOffset={xOffsetClamp(width, xOffset, xScaleFactor)}
+            />
+          </svg>
+        )}
+      </ParentSize>
 
       {/* Scale controls */}
       <div>
-        <button onClick={() => setXScale(Math.max(xScaleTarget - 1, 1))}>
+        <button
+          onClick={() => setXScaleFactor(Math.max(xScaleFactorTarget - 1, 1))}
+        >
           -
         </button>
-        {xScale.toPrecision(3)} target: {xScaleTarget}
-        <button onClick={() => setXScale(xScaleTarget + 1)}>+</button>
+        {xScaleFactor.toPrecision(3)} target: {xScaleFactorTarget}
+        <button onClick={() => setXScaleFactor(xScaleFactorTarget + 1)}>
+          +
+        </button>
       </div>
 
       {/* Pan controls */}
