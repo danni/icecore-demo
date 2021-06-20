@@ -7,6 +7,7 @@ import { Text } from "@visx/text";
 import { interpolateRdBu } from "d3-scale-chromatic";
 import { ParentSizeModern as ParentSize } from "@visx/responsive";
 import { ScaleLinear } from "d3-scale";
+import { ActiveListener } from "react-event-injector";
 
 import "./App.css";
 import useTweenState from "./useTweenState";
@@ -150,6 +151,8 @@ function Graph({
     [data, height]
   );
 
+  if (height <= 0 || width <= 0) return null;
+
   return (
     // Translate the group to leave space for the axes
     <Group left={margin}>
@@ -223,9 +226,7 @@ function App() {
       {/* Graph */}
       <ParentSize>
         {({ width, height }) => (
-          <svg
-            width={width}
-            height={height}
+          <ActiveListener
             onMouseDown={() => setPanning(true)}
             onMouseUp={() => setPanning(false)}
             onMouseMove={(event) =>
@@ -238,16 +239,35 @@ function App() {
                 )
               )
             }
+            onWheel={(event) => {
+              event.preventDefault();
+              if (event.deltaX === 0) {
+                // Pinch zoom
+                const target = xScaleFactorTarget - event.deltaY / 20;
+                setXScaleFactor(clamp(target, 1, 12), false);
+              } else {
+                // Two finger scroll
+                setXOffset(
+                  xOffsetClamp(
+                    width,
+                    xOffsetTarget - event.deltaX,
+                    xScaleFactor
+                  )
+                );
+              }
+            }}
           >
-            <Graph
-              data={data}
-              context={context}
-              width={width}
-              height={height}
-              xScaleFactor={xScaleFactor}
-              xOffset={xOffsetClamp(width, xOffset, xScaleFactor)}
-            />
-          </svg>
+            <svg width={width} height={height}>
+              <Graph
+                data={data}
+                context={context}
+                width={width}
+                height={height}
+                xScaleFactor={xScaleFactor}
+                xOffset={xOffsetClamp(width, xOffset, xScaleFactor)}
+              />
+            </svg>
+          </ActiveListener>
         )}
       </ParentSize>
 
@@ -258,7 +278,7 @@ function App() {
         >
           -
         </button>
-        {xScaleFactor.toPrecision(3)} target: {xScaleFactorTarget}
+        {xScaleFactor.toPrecision(3)} target: {xScaleFactorTarget.toPrecision(3)}
         <button onClick={() => setXScaleFactor(xScaleFactorTarget + 1)}>
           +
         </button>

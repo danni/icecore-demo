@@ -51,7 +51,7 @@ export default function useTweenState(
   initialValue: number,
   duration: number = 400, // ms
   easingFunction: EasingFunction = easeInOutQuad
-): [number, (target: number) => void, number] {
+): [number, (target: number, tween?: boolean) => void, number] {
   // State vectors for rerendering react
   const [value, _setValue] = useState<number>(initialValue);
   const [target, _setTarget] = useState<number>(initialValue);
@@ -105,10 +105,12 @@ export default function useTweenState(
 
   // State change function for the caller
   const setTargetValue = useCallback(
-    (value: number) => {
+    (value: number, tween: boolean = true) => {
       if (value !== currentValue.current) {
         startValue.current = currentValue.current;
-        startTimestamp.current = performance.now();
+        // If we're not tweening set a long since elapsed timestamp, so we'll
+        // just jump to the target on the next animation frame
+        startTimestamp.current = tween ? performance.now() : 0;
 
         // Update the caller with the current target
         setTarget(value);
