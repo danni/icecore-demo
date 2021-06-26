@@ -6,6 +6,7 @@ import { RectClipPath } from "@visx/clip-path";
 import { Text } from "@visx/text";
 import { interpolateRdBu } from "d3-scale-chromatic";
 import { ParentSizeModern as ParentSize } from "@visx/responsive";
+import { localPoint } from "@visx/event";
 import { ScaleLinear } from "d3-scale";
 import { ActiveListener } from "react-event-injector";
 
@@ -219,7 +220,37 @@ function App() {
 
   const [panning, setPanning] = useState<boolean>(false);
   const [xScaleFactor, setXScaleFactor, xScaleFactorTarget] = useTweenState(1);
+  // Inertial scroll xOffset
   const [xOffset, setXOffset, xOffsetTarget] = useInertialState(0);
+  // An additional xOffset (used for tweening the xOffset during a zoom)
+  const [xOffsetDelta, setXOffsetDelta] = useTweenState(0);
+
+  // Pan the screen by a delta
+  const panGraph = (delta: number, width: number) => {
+    let offset = xOffset;
+
+    // Copy any tweening offset to the panning offset and zero out the
+    // tweening offset
+    if (xOffsetDelta !== 0) {
+      offset += xOffsetDelta;
+      setXOffset(offset);
+
+      setXOffsetDelta(0, false);
+    }
+
+    setXOffset(xOffsetClamp(width, offset + delta, xScaleFactor));
+  };
+
+  const zoomGraph = (delta: number, width: number, x: number, tween: boolean = true) => {
+    // Calculate the ratio of the click to the virtual width
+    const alpha = (x - xOffset - xOffsetDelta) / (width * xScaleFactor);
+
+    // Tween the zoom
+    setXScaleFactor(xScaleFactorTarget + delta, tween);
+
+    // Tween the offset to maintain the same ratio to the left hand side
+    setXOffsetDelta(xOffsetDelta - alpha * delta * width, tween);
+  };
 
   return (
     <div className="App">
@@ -229,42 +260,39 @@ function App() {
           <ActiveListener
             onMouseDown={() => setPanning(true)}
             onMouseUp={() => setPanning(false)}
-            onMouseMove={(event) =>
-              panning &&
-              setXOffset(
-                xOffsetClamp(
-                  width,
-                  xOffsetTarget + event.movementX,
-                  xScaleFactor
-                )
-              )
-            }
+            onMouseMove={(event) => panning && panGraph(event.movementX, width)}
             onWheel={(event) => {
               event.preventDefault();
               if (event.deltaX === 0) {
                 // Pinch zoom
-                const target = xScaleFactorTarget - event.deltaY / 20;
-                setXScaleFactor(clamp(target, 1, 12), false);
+                const point = localPoint(event as any) ?? { x: 0 };
+                zoomGraph(-event.deltaY / 20, width, point.x, false)
               } else {
                 // Two finger scroll
-                setXOffset(
-                  xOffsetClamp(
-                    width,
-                    xOffsetTarget - event.deltaX,
-                    xScaleFactor
-                  )
-                );
+                panGraph(-event.deltaX, width);
               }
             }}
           >
-            <svg width={width} height={height}>
+            <svg
+              width={width}
+              height={height}
+              onDoubleClick={(event) => {
+                const point = localPoint(event) ?? { x: 0 };
+
+                zoomGraph(1, width, point.x)
+              }}
+            >
               <Graph
                 data={data}
                 context={context}
                 width={width}
                 height={height}
                 xScaleFactor={xScaleFactor}
-                xOffset={xOffsetClamp(width, xOffset, xScaleFactor)}
+                xOffset={xOffsetClamp(
+                  width,
+                  xOffset + xOffsetDelta,
+                  xScaleFactor
+                )}
               />
             </svg>
           </ActiveListener>
@@ -278,7 +306,8 @@ function App() {
         >
           -
         </button>
-        {xScaleFactor.toPrecision(3)} target: {xScaleFactorTarget.toPrecision(3)}
+        {xScaleFactor.toPrecision(3)} target:{" "}
+        {xScaleFactorTarget.toPrecision(3)}
         <button onClick={() => setXScaleFactor(xScaleFactorTarget + 1)}>
           +
         </button>
@@ -287,7 +316,7 @@ function App() {
       {/* Pan controls */}
       <div>
         <button onClick={() => setXOffset(xOffsetTarget - 10)}>&lt;-</button>
-        {xOffset} target: {xOffsetTarget}
+        {xOffset} target: {xOffsetTarget} delta: {xOffsetDelta}
         <button onClick={() => setXOffset(xOffsetTarget + 10)}>-&gt;</button>
         {panning && "panning"}
       </div>
